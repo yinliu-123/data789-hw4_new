@@ -1,0 +1,78 @@
+# DATA 789 · HW4 — graded core: the fraud API Deployment.
+# 3 replicas · resource requests+limits · readiness/liveness/startup probes ·
+# zero-drop rolling-update strategy. Runs the provided Project 2 fraud image as-is.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trustbank-fraud
+  labels:
+    app: trustbank-fraud
+    course: data789
+    assignment: hw4
+spec:
+  replicas: 3                         # graded: exactly 3 replicas
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1                      # add one new pod before…
+      maxUnavailable: 0                # …removing any old pod  → zero dropped requests
+  selector:
+    matchLabels:
+      app: trustbank-fraud
+  template:
+    metadata:
+      labels:
+        app: trustbank-fraud
+        color: blue                    # only used by the blue-green variant (k8s/blue-green/)
+        # HW4: add  owner: <your-onyen>  here (and on the Deployment's metadata.labels above)
+    spec:
+      terminationGracePeriodSeconds: 30   # give the drain below time to finish
+      containers:
+        - name: fraud
+          image: ghcr.io/rfsalas/trustbank-fraud:v1   # the provided P2 image (change if published elsewhere)
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000                # API listens here (Dockerfile EXPOSE 8000)
+          env:
+            - name: REDIS_HOST                   # the API reads customer features from Redis…
+              value: "redis"                     # …at this Service name (see k8s/redis.yaml)
+            - name: REDIS_PORT                   # explicit: overrides the tcp://… value that
+              value: "6379"                      # Kubernetes service links would otherwise inject
+          resources:
+            requests:                             # what the scheduler reserves
+              cpu: "100m"
+              memory: "128Mi"
+            limits:                               # hard ceiling. HW4: right-size these per the assignment
+              cpu: "500m"
+              memory: "256Mi"
+          # Probes hit GET /health — it returns 200 WITHOUT touching Redis, so pods
+          # report Ready even before Redis is up.
+          startupProbe:                           # allow a slow model-load to warm up (~150s)
+            httpGet: { path: /health, port: http }
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:                         # gate traffic until the pod is ready
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:                          # restart a wedged pod
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 2
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                # A terminating pod stops accepting traffic BEFORE it is removed from the
+                # Service's endpoint list. Without this pause, in-flight requests are still
+                # being routed here as the container goes away — that is where the "dropped"
+                # requests come from, even with maxUnavailable: 0. Sleep long enough for the
+                # endpoint removal to propagate.
+                command: ["sh", "-c", "sleep 5"]
+# Deploy Redis alongside this so /predict can score:
+#   kubectl apply -f k8s/            # applies deployment, service, hpa, redis together

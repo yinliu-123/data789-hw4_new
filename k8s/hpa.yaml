@@ -1,0 +1,30 @@
+# DATA 789 · HW4 — graded core: Horizontal Pod Autoscaler.
+# Scales the fraud API on CPU. minReplicas keeps the graded 3-replica floor.
+#
+# REQUIRES the metrics-server:
+#   Minikube →  minikube addons enable metrics-server
+#   AKS      →  built in (nothing to do)
+#
+# Note: the Deployment pins replicas: 3 and this HPA has minReplicas: 3, so they
+# agree at rest. Once load pushes CPU past target, the HPA scales 3 → up to 10.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: trustbank-fraud
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: trustbank-fraud
+  minReplicas: 3
+  maxReplicas: 10                    # HW4: set per the assignment
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50      # HW4: set per the assignment (this is % of the CPU request)
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 120  # avoid flapping: wait 2 min of low load before scaling in

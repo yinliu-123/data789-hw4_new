@@ -1,0 +1,23 @@
+# DATA 789 · HW4 — blue-green Service. The `color` in the selector decides which
+# color receives live traffic. Start on blue; flip to green for the cutover:
+#
+#   kubectl patch service trustbank-fraud-bg \
+#     -p '{"spec":{"selector":{"app":"trustbank-fraud-bg","color":"green"}}}'
+#
+# …or use the helper:  ./scripts/bluegreen_switch.sh green   (roll back with: blue)
+apiVersion: v1
+kind: Service
+metadata:
+  name: trustbank-fraud-bg
+  labels:
+    app: trustbank-fraud-bg
+spec:
+  type: LoadBalancer
+  selector:
+    app: trustbank-fraud-bg
+    color: blue                 # ← the live color. Change to green to cut over.
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

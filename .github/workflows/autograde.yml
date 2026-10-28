@@ -1,0 +1,48 @@
+name: HW4 autograde
+# Runs automatically in each student's repo (copied in via "Use this template").
+# Validates the Kubernetes manifests and checks the required HW4 elements.
+# A green check = valid config; screenshots are still graded by the instructor.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar -xz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Manifests are well-formed Kubernetes YAML
+        run: |
+          echo "::group::kubeconform k8s/"
+          kubeconform -strict -summary -ignore-missing-schemas k8s/
+          echo "::endgroup::"
+
+      - name: Required HW4 elements
+        run: |
+          fail=0
+          check() { if eval "$2" >/dev/null 2>&1; then echo "PASS  $1"; else echo "FAIL  $1"; fail=1; fi; }
+          check "Deployment sets 3 replicas"        "grep -Eq 'replicas:[[:space:]]*3' k8s/deployment.yaml"
+          check "Resource requests present"         "grep -q 'requests:' k8s/deployment.yaml"
+          check "Resource limits present"           "grep -q 'limits:' k8s/deployment.yaml"
+          check "Readiness probe present"           "grep -q 'readinessProbe:' k8s/deployment.yaml"
+          check "Liveness probe present"            "grep -q 'livenessProbe:' k8s/deployment.yaml"
+          check "HorizontalPodAutoscaler present"   "grep -Rqi 'kind:[[:space:]]*HorizontalPodAutoscaler' k8s/"
+          check "LoadBalancer Service present"      "grep -Rqi 'type:[[:space:]]*LoadBalancer' k8s/"
+          check "CPU limit right-sized (250m)"      "grep -q '250m' k8s/deployment.yaml"
+          check "Memory limit right-sized (192Mi)"  "grep -q '192Mi' k8s/deployment.yaml"
+          check "owner label added"                 "grep -Eq '^[[:space:]]*owner:' k8s/deployment.yaml"
+          check "HPA target set to 40%"             "grep -Eq 'averageUtilization:[[:space:]]*40' k8s/hpa.yaml"
+          check "HPA maxReplicas set to 8"          "grep -Eq 'maxReplicas:[[:space:]]*8' k8s/hpa.yaml"
+          echo ""
+          if [ "$fail" -ne 0 ]; then
+            echo "Some required elements are missing — see the FAIL lines above, fix, and push again."
+            exit 1
+          fi
+          echo "All required manifest checks passed. (Your screenshots are graded by the instructor.)"

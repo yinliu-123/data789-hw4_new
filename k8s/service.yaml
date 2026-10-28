@@ -1,0 +1,21 @@
+# DATA 789 · HW4 — graded core: expose the fraud API.
+# type: LoadBalancer gives an external IP.
+#   • Minikube: run `minikube tunnel` in a second terminal to get the IP, OR use
+#     `kubectl port-forward svc/trustbank-fraud 8080:80` and hit http://localhost:8080
+#   • kind: LoadBalancer needs `cloud-provider-kind`; port-forward is the easy path.
+#   • AKS: a real public IP is provisioned automatically.
+apiVersion: v1
+kind: Service
+metadata:
+  name: trustbank-fraud
+  labels:
+    app: trustbank-fraud
+spec:
+  type: LoadBalancer
+  selector:
+    app: trustbank-fraud        # matches the Deployment pods
+  ports:
+    - name: http
+      port: 80                  # external port
+      targetPort: http          # → the container's named port (8000)
+      protocol: TCP

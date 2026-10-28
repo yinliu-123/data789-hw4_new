@@ -1,0 +1,43 @@
+# DATA 789 · HW4 — blue-green rollout (the K8s-native version of P2's compose blue-green).
+# BLUE = the currently-live color. Self-contained set (app label trustbank-fraud-bg) so it
+# never overlaps the main Deployment/Service. Apply the whole k8s/blue-green/ folder as an
+# ALTERNATIVE to the top-level manifests, not on top of them. (Redis from k8s/redis.yaml is
+# shared — apply it once and both colors use it.)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trustbank-fraud-blue
+  labels:
+    app: trustbank-fraud-bg
+    color: blue
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: trustbank-fraud-bg
+      color: blue
+  template:
+    metadata:
+      labels:
+        app: trustbank-fraud-bg
+        color: blue
+    spec:
+      containers:
+        - name: fraud
+          image: ghcr.io/rfsalas/trustbank-fraud:v1   # provided P2 image (v1 = current)
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: REDIS_HOST
+              value: "redis"
+            - name: REDIS_PORT                   # explicit: overrides the tcp://… value that
+              value: "6379"                      # Kubernetes service links would otherwise inject
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "500m", memory: "256Mi" }
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10

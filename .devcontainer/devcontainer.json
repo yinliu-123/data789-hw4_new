@@ -1,0 +1,24 @@
+{
+  "name": "DATA789 HW4 — Deploy Layer",
+  // Pinned 2026-10-25: base:ubuntu moved to 26.04; docker-in-docker moby does not support it.
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/azure-cli:1": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "minikube": "latest",
+      "helm": "none"
+    }
+  },
+  "postCreateCommand": "kubectl version --client && az version && minikube version",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "ms-azuretools.vscode-docker",
+        "ms-azuretools.vscode-azurecontainerapps"
+      ]
+    }
+  },
+  "remoteUser": "vscode"
+}

@@ -1,0 +1,13 @@
+# DATA 789 · HW4 — OPTIONAL app config (not wired in by default).
+# Enable it by uncommenting the `envFrom` block in k8s/deployment.yaml.
+# Only add keys your P2 app actually reads — unknown env vars are ignored, but
+# keep this minimal so the graded deploy stays "hard to fail".
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trustbank-fraud-config
+  labels:
+    app: trustbank-fraud
+data:
+  LOG_LEVEL: "info"
+  # MODEL_VERSION: "v1"     # example — only if your app reads it
