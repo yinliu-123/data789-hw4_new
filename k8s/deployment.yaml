@@ -9,6 +9,7 @@ metadata:
     app: trustbank-fraud
     course: data789
     assignment: hw4
+    owner: yinliu
 spec:
   replicas: 3                         # graded: exactly 3 replicas
   revisionHistoryLimit: 5
@@ -25,6 +26,7 @@ spec:
       labels:
         app: trustbank-fraud
         color: blue                    # only used by the blue-green variant (k8s/blue-green/)
+        owner: yinliu
         # HW4: add  owner: <your-onyen>  here (and on the Deployment's metadata.labels above)
     spec:
       terminationGracePeriodSeconds: 30   # give the drain below time to finish
@@ -45,8 +47,8 @@ spec:
               cpu: "100m"
               memory: "128Mi"
             limits:                               # hard ceiling. HW4: right-size these per the assignment
-              cpu: "500m"
-              memory: "256Mi"
+              cpu: "250m"
+              memory: "192Mi"
           # Probes hit GET /health — it returns 200 WITHOUT touching Redis, so pods
           # report Ready even before Redis is up.
           startupProbe:                           # allow a slow model-load to warm up (~150s)

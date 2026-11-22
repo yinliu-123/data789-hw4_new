@@ -6,7 +6,7 @@
 #   AKS      →  built in (nothing to do)
 #
 # Note: the Deployment pins replicas: 3 and this HPA has minReplicas: 3, so they
-# agree at rest. Once load pushes CPU past target, the HPA scales 3 → up to 10.
+# agree at rest. Once load pushes CPU past target, the HPA scales 3 → up to 8.
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -17,14 +17,14 @@ spec:
     kind: Deployment
     name: trustbank-fraud
   minReplicas: 3
-  maxReplicas: 10                    # HW4: set per the assignment
+  maxReplicas: 8                    # HW4: set per the assignment
   metrics:
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 50      # HW4: set per the assignment (this is % of the CPU request)
+          averageUtilization: 40      # HW4: set per the assignment (this is % of the CPU request)
   behavior:
     scaleDown:
       stabilizationWindowSeconds: 120  # avoid flapping: wait 2 min of low load before scaling in
