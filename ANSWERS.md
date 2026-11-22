@@ -15,6 +15,7 @@ The readiness probe checks whether the pod is ready to receive traffic; if it fa
 
 ## 3. Autoscaling under load
 Your HPA scales at 40% CPU up to 8 pods. If request volume doubled, what would you expect to happen — and what happens once it reaches the maximum?
+
 Although the HPA target is 40%, current CPU utilization is only about 2%, so doubling request volume might raise it to roughly 4% and would likely leave the replica count unchanged.
 If traffic increases substantially and average CPU utilization rises sufficiently above the 40% target, the HPA will add replicas to bring utilization back toward that target. Once it reaches eight pods, it cannot add more. So CPU utilization will keep increasing even if it reaches the maximum 40% target(for scaling) and further load may cause slower responses or failed requests if available capacity is exhausted.
 
